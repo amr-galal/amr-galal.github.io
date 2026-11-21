@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="theme-color" content="#f9fbfe"><title>OCR Is Only Half the Problem: Layout and Reading Order in Real Documents | Amr Galal</title><link rel="stylesheet" href="../style.css"></head><body><nav><a class="brand" href="../index.html">AMR<span>.</span>GALAL</a><div class="navlinks"><a href="../index.html#writing">Writing</a><a href="../index.html#projects">Projects</a><a class="pill" href="mailto:a.galal.arafa@gmail.com">Get in touch ↗</a></div></nav><main class="articlemain"><a class="back" href="../index.html#writing">← Back to writing portfolio</a><div class="article-kicker">Independent technical writing sample · Document AI</div><h1 class="article-title">OCR Is Only Half the Problem: Layout and Reading Order in Real Documents</h1><p class="article-lead">A practical guide to treating recognition, layout analysis, and reading order as separate engineering problems — and evaluating them together.</p><div class="article-meta">Amr Galal · Engineering perspective · Portfolio sample</div><article class="prose"><p>When a document pipeline returns readable text in the wrong order, the OCR engine often gets blamed. But text recognition and document understanding are different problems. OCR can correctly recognize every word and still produce an unusable result if the content is assembled out of sequence.</p>
+<h2>Three problems, not one</h2>
+<p>A practical document pipeline usually has to solve three related tasks:</p>
+<ol><li><strong>Text recognition:</strong> What characters or words are present in each region?</li><li><strong>Layout analysis:</strong> Which regions are headings, paragraphs, tables, captions, or sidebars?</li><li><strong>Reading order:</strong> In what sequence should those regions be consumed?</li></ol>
+<p>Consider a two-column research paper. An OCR engine may detect words accurately but return the left and right columns interleaved by vertical position. That output is technically recognized text, but it is poor input for downstream summarization, search, or RAG.</p>
+<h2>Choose the processing mode based on the document</h2>
+<h3>1. OCR-only</h3>
+<p>Useful for scans where text boxes and word coordinates are the main available signals. Start with geometry-based ordering, such as grouping into lines and columns. XY-Cut-style strategies can be useful baselines, but need testing against multi-column layouts, footnotes, and irregular structures.</p>
+<h3>2. Layout-only</h3>
+<p>For digital PDFs with a trustworthy text layer, you may not need to re-recognize characters. Layout regions and native text boxes may be sufficient to recover meaningful sections and ordering, reducing both computation and recognition errors.</p>
+<h3>3. OCR + layout</h3>
+<p>This is often the most useful mode for complex scans. A layout detector identifies structural regions while OCR provides text and coordinates within each region. The challenge becomes associating OCR boxes with their parent regions, then ordering regions and the content inside them.</p>
+<div class="note"><strong>Design principle:</strong> Don't assume one reading-order algorithm will work equally well for clean PDFs, dense technical documents, forms, and mixed-language scans.</div>
+<h2>A simple decision pipeline</h2>
+<pre><code>document = inspect_pdf(file)
+
+if document.has_reliable_text_layer:
+    blocks = extract_native_text(file)
+    regions = detect_layout(file)
+else:
+    blocks = recognize_text(file)
+    regions = detect_layout(file) if needs_structure(file) else None
+
+ordered = recover_reading_order(blocks, regions)
+result = validate_and_export(ordered)</code></pre>
+<p>This is intentionally pseudocode: the important part is keeping extraction, structural analysis, ordering, and validation as separate stages. That makes the system easier to test and allows individual components to be replaced without redesigning the service.</p>
+<h2>What should you benchmark?</h2>
+<p>Character error rate and word error rate measure recognition, not whether the document reads correctly. I would evaluate reading order separately using annotated block sequences and downstream task checks.</p>
+<ul><li><strong>Sequence accuracy:</strong> Are blocks returned in the expected order?</li><li><strong>Structural quality:</strong> Do headings, captions, and tables stay associated with the right content?</li><li><strong>Downstream impact:</strong> Does retrieval still find the correct paragraph? Does summarization preserve the original argument?</li><li><strong>Operating cost:</strong> How much extra latency does layout detection and ordering add per page?</li></ul>
+<h2>Takeaway</h2>
+<p>Reliable Document AI is a pipeline problem, not just an OCR-model problem. Treat recognition, layout, and reading order as measurable components; build simple baselines; then use more sophisticated processing only where the document characteristics justify it.</p></article><div class="article-footer"><a href="../index.html#writing">← All writing</a><a href="evaluating-llm-apis.html">Next: Evaluating LLM APIs →</a></div></main><footer><span>© 2026 Amr Galal</span><span>Original portfolio writing sample</span></footer></body></html>
